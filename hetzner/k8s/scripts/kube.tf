@@ -5,8 +5,12 @@ locals {
 
   # Your Hetzner token can be found in your Project > Security > API Token (Read & Write is required).
   hcloud_token = var.hcloud_token
+
   arm_small = "cax11" # The smallest ARM server type, which is the same as cx22, but with ARM architecture.
   arm_medium = "cax21" # The next ARM server type, which is the same as cx32, but with ARM architecture.
+  amd_small = "cx22" # Hetzner server type for control plane and agent nodes
+  amd_medium = "cx32" # Hetzner server type for control plane and agent nodes
+  amd_large = "cx41" # Hetzner server type for control plane and agent nodes
 }
 
 module "kube-hetzner" {
@@ -124,8 +128,8 @@ module "kube-hetzner" {
   control_plane_nodepools = [
     {
       name        = "control-plane-fsn1",
-      server_type = var.server_small # "cx22",
-      location    = var.location # "fns1",
+      server_type = local.amd_medium, # "cx22",
+      location    = var.location, # "fns1",
       labels      = [],
       taints      = [],
       count       = 1
@@ -147,7 +151,7 @@ module "kube-hetzner" {
     },
     {
       name        = "control-plane-nbg1",
-      server_type = var.server_small # "cx22",
+      server_type = local.amd_small # "cx22",
       location    = "nbg1"  #var.location,
       labels      = [],
       taints      = [],
@@ -167,7 +171,7 @@ module "kube-hetzner" {
     },
     {
       name        = "control-plane-hel1",
-      server_type = var.server_small # "cx22",
+      server_type = local.amd_small # "cx22",
       location    = "hel1",
       labels      = [],
       taints      = [],
@@ -190,7 +194,7 @@ module "kube-hetzner" {
   agent_nodepools = [
     {
       name        = "agent-small",
-      server_type = var.server_small # "cx22",
+      server_type = local.amd_small # "cx22",
       location    = var.location # "fns1",
       labels      = [],
       taints      = [],
@@ -207,7 +211,7 @@ module "kube-hetzner" {
     },
     {
       name        = "agent-large",
-      server_type = var.server_large,
+      server_type = local.amd_large,
       location    = var.location #"nbg1",
       labels      = [],
       taints      = [],
@@ -221,7 +225,7 @@ module "kube-hetzner" {
     },
     {
       name        = "storage",
-      server_type = var.server_small #"cx32",
+      server_type = local.amd_small #"cx32",
       location    = var.location # "fns1",
       # Fully optional, just a demo.
       labels      = [
@@ -244,7 +248,7 @@ module "kube-hetzner" {
     # See the https://github.com/kube-hetzner/terraform-hcloud-kube-hetzner#examples for an example use case.
     {
       name        = "egress",
-      server_type = var.server_small # "cx22",
+      server_type = local.amd_small # "cx22",
       location    = var.location # "fns1",
       labels = [
         "node.kubernetes.io/role=egress"
@@ -367,10 +371,8 @@ module "kube-hetzner" {
   #  }
   # ]
   #
-  # To disable public ips on your autoscaled nodes, uncomment the following lines:
-  # autoscaler_disable_ipv4 = true
-  # autoscaler_disable_ipv6 = true
 
+  
   # ⚠️ Deprecated, will be removed after a new Cluster Autoscaler version has been released which support the new way of setting labels and taints. See above.
   # Add extra labels on nodes started by the Cluster Autoscaler
   # This argument is not used if autoscaler_nodepools is not set, because the Cluster Autoscaler is installed only if autoscaler_nodepools is set
@@ -639,14 +641,14 @@ module "kube-hetzner" {
 
   # Allows you to specify the k3s version. If defined, supersedes initial_k3s_channel.
   # See https://github.com/k3s-io/k3s/releases for the available versions.
-  # install_k3s_version = "v1.30.2+k3s2"
+  install_k3s_version = "v1.31.9+k3s1"
 
   # Allows you to specify either stable, latest, testing or supported minor versions.
   # see https://rancher.com/docs/k3s/latest/en/upgrades/basic/ and https://update.k3s.io/v1-release/channels
   # ⚠️ If you are going to use Rancher addons for instance, it's always a good idea to fix the kube version to one minor version below the latest stable,
   #     e.g. v1.29 instead of the stable v1.30.
   # The default is "v1.30".
-  # initial_k3s_channel = "stable"
+  initial_k3s_channel = "v1.31"
 
   # Allows to specify the version of the System Upgrade Controller for automated upgrades of k3s
   # See https://github.com/rancher/system-upgrade-controller/releases for the available versions.
@@ -760,7 +762,7 @@ module "kube-hetzner" {
   # Allow SSH access from the specified networks. Default: ["0.0.0.0/0", "::/0"]
   # Allowed values: null (disable SSH rule entirely) or a list of allowed networks with CIDR notation.
   # Ideally you would set your IP there. And if it changes after cluster deploy, you can always update this variable and apply again.
-  firewall_ssh_source = [var.my_ip]
+  firewall_ssh_source = var.my_ips
 
   # By default, SELinux is enabled in enforcing mode on all nodes. For container-specific SELinux issues,
   # consider using the pre-installed 'udica' tool to create custom, targeted SELinux policies instead of
@@ -771,18 +773,18 @@ module "kube-hetzner" {
   # More info on the format here https://registry.terraform.io/providers/hetznercloud/hcloud/latest/docs/resources/firewall
   extra_firewall_rules = [
     {
-      description = "Restrict HTTP for development"
+      description = "Restrict HTTP"
       direction   = "in"
       port        = "80"
       protocol    = "tcp"
-      source_ips  = [var.my_ip] # Replace with your IP or CIDR range
+      source_ips  = var.my_ips # Replace with your IP or CIDR range
     },
     {
-      description = "Restrict HTTPS for development"
+      description = "Restrict HTTPS"
       direction   = "in"
       port        = "443"
       protocol    = "tcp"
-      source_ips  = [var.my_ip]
+      source_ips  = var.my_ips
     }
   ]
 
@@ -792,7 +794,7 @@ module "kube-hetzner" {
   # Also, see the cilium_values at towards the end of this file, in the advanced section.
   # ⚠️ Depending on your setup, sometimes you need your control-planes to have more than
   # 2GB of RAM if you are going to use Cilium, otherwise the pods will not start.
-  # cni_plugin = "cilium"
+  cni_plugin = "cilium"
 
   # You can choose the version of Cilium that you want. By default we keep the version up to date and configure Cilium with compatible settings according to the version.
   # See https://github.com/cilium/cilium/releases for the available versions.
@@ -850,7 +852,7 @@ module "kube-hetzner" {
 
   # When this is enabled, rather than the first node, all external traffic will be routed via a control-plane loadbalancer, allowing for high availability.
   # The default is false.
-  # luse_control_plane_lb = true
+  use_control_plane_lb = false
 
   # When the above use_control_plane_lb is enabled, you can change the lb type for it, the default is "lb11".
   # control_plane_lb_type = "lb21"

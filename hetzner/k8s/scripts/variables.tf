@@ -4,27 +4,13 @@ variable "hcloud_token" {
   sensitive   = true
 }
 
-variable "my_ip" {
-  description = "CIDR Range for your local machine"
-  type = string
+variable "my_ips" {
+  description = "CIDR Ranges for your local machine(s)"
+  type = list(string)
   sensitive = false
 }
 
-variable "my_ssh_id" {
-  type = string
-  description = "SSH Key ID for Public Key registered in HCloud"
-}
 
-variable "server_small" {
-  description = "Hetzner server type for control plane and agent nodes"
-  type        = string
-  default     = "cx22"
-}
-
-variable "server_large" {
-  type = string
-  default = "cx32"
-}
 variable "location" {
   type = string
   default = "FSN1"
