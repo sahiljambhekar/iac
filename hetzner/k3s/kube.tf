@@ -711,7 +711,7 @@ module "kube-hetzner" {
   # k3s_autoscaler_kubelet_args = []
 
   # If you want to allow all outbound traffic you can set this to "false". Default is "true".
-  restrict_outbound_traffic = true
+  restrict_outbound_traffic = false
 
   # Allow access to the Kube API from the specified networks. The default is ["0.0.0.0/0", "::/0"].
   # Allowed values: null (disable Kube API rule entirely) or a list of allowed networks with CIDR notation.
