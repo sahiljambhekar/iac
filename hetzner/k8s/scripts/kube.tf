@@ -4,7 +4,9 @@ locals {
   # If you choose to define it in the shell, this can be left as is.
 
   # Your Hetzner token can be found in your Project > Security > API Token (Read & Write is required).
-  hcloud_token = "xxxxxxxxxxx"
+  hcloud_token = var.hcloud_token
+  arm_small = "cax11" # The smallest ARM server type, which is the same as cx22, but with ARM architecture.
+  arm_medium = "cax21" # The next ARM server type, which is the same as cx32, but with ARM architecture.
 }
 
 module "kube-hetzner" {
@@ -21,7 +23,7 @@ module "kube-hetzner" {
   source = "kube-hetzner/kube-hetzner/hcloud"
   #    When using the terraform registry as source, you can optionally specify a version number.
   #    See https://registry.terraform.io/modules/kube-hetzner/kube-hetzner/hcloud for the available versions
-  # version = "2.15.3"
+   version = "2.17.0"
   # 2. For local dev, path to the git repo
   # source = "../../kube-hetzner/"
   # 3. If you want to use the latest master branch (see https://developer.hashicorp.com/terraform/language/modules/sources#github), use
@@ -32,7 +34,7 @@ module "kube-hetzner" {
   # those, you should instead change the value here and manually re-provision each node. Grep for "lifecycle".
 
   # Customize the SSH port (by default 22)
-  # ssh_port = 2222
+  ssh_port = 22
 
   # * Your ssh public key
   ssh_public_key = file("~/.ssh/id_ed25519.pub")
@@ -47,7 +49,7 @@ module "kube-hetzner" {
   # ssh_hcloud_key_label = "role=admin"
 
   # If you use SSH agent and have issues with SSH connecting to your nodes, you can increase the number of auth tries (default is 2)
-  # ssh_max_auth_tries = 10
+  ssh_max_auth_tries = 2
 
   # If you want to use an ssh key that is already registered within hetzner cloud, you can pass its id.
   # If no id is passed, a new ssh key will be registered within hetzner cloud.
@@ -55,7 +57,7 @@ module "kube-hetzner" {
   # hcloud_ssh_key_id = ""
 
   # These can be customized, or left with the default values
-  # * For Hetzner locations see https://docs.hetzner.com/general/others/data-centers-and-connection/
+  # * For Hetzner locations see https://docs.hetzner.com/general/others/data-centerhcls-and-connection/
   network_region = "eu-central" # change to `us-east` if location is ash
 
   # If you want to create the private network before calling this module,
@@ -122,8 +124,8 @@ module "kube-hetzner" {
   control_plane_nodepools = [
     {
       name        = "control-plane-fsn1",
-      server_type = "cx22",
-      location    = "fsn1",
+      server_type = var.server_small # "cx22",
+      location    = var.location # "fns1",
       labels      = [],
       taints      = [],
       count       = 1
@@ -145,11 +147,11 @@ module "kube-hetzner" {
     },
     {
       name        = "control-plane-nbg1",
-      server_type = "cx22",
-      location    = "nbg1",
+      server_type = var.server_small # "cx22",
+      location    = "nbg1"  #var.location,
       labels      = [],
       taints      = [],
-      count       = 1
+      count       = 0
 
       # Fine-grained control over placement groups (nodes in the same group are spread over different physical servers, 10 nodes per placement group max):
       # placement_group = "default"
@@ -165,11 +167,11 @@ module "kube-hetzner" {
     },
     {
       name        = "control-plane-hel1",
-      server_type = "cx22",
+      server_type = var.server_small # "cx22",
       location    = "hel1",
       labels      = [],
       taints      = [],
-      count       = 1
+      count       = 0
 
       # Fine-grained control over placement groups (nodes in the same group are spread over different physical servers, 10 nodes per placement group max):
       # placement_group = "default"
@@ -188,14 +190,14 @@ module "kube-hetzner" {
   agent_nodepools = [
     {
       name        = "agent-small",
-      server_type = "cx22",
-      location    = "fsn1",
+      server_type = var.server_small # "cx22",
+      location    = var.location # "fns1",
       labels      = [],
       taints      = [],
       count       = 1
-      # swap_size   = "2G" # remember to add the suffix, examples: 512M, 1G
-      # zram_size   = "2G" # remember to add the suffix, examples: 512M, 1G
-      # kubelet_args = ["kube-reserved=cpu=50m,memory=300Mi,ephemeral-storage=1Gi", "system-reserved=cpu=250m,memory=300Mi"]
+      swap_size   = "2G" # remember to add the suffix, examples: 512M, 1G
+      zram_size   = "2G" # remember to add the suffix, examples: 512M, 1G
+      kubelet_args = ["kube-reserved=cpu=150m,memory=300Mi,ephemeral-storage=1Gi", "system-reserved=cpu=250m,memory=300Mi"]
 
       # Fine-grained control over placement groups (nodes in the same group are spread over different physical servers, 10 nodes per placement group max):
       # placement_group = "default"
@@ -205,11 +207,11 @@ module "kube-hetzner" {
     },
     {
       name        = "agent-large",
-      server_type = "cx32",
-      location    = "nbg1",
+      server_type = var.server_large,
+      location    = var.location #"nbg1",
       labels      = [],
       taints      = [],
-      count       = 1
+      count       = 0
 
       # Fine-grained control over placement groups (nodes in the same group are spread over different physical servers, 10 nodes per placement group max):
       # placement_group = "default"
@@ -219,14 +221,14 @@ module "kube-hetzner" {
     },
     {
       name        = "storage",
-      server_type = "cx32",
-      location    = "fsn1",
+      server_type = var.server_small #"cx32",
+      location    = var.location # "fns1",
       # Fully optional, just a demo.
       labels      = [
         "node.kubernetes.io/server-usage=storage"
       ],
       taints      = [],
-      count       = 1
+      count       = 0
 
       # In the case of using Longhorn, you can use Hetzner volumes instead of using the node's own storage by specifying a value from 10 to 10240 (in GB)
       # It will create one volume per node in the nodepool, and configure Longhorn to use them.
@@ -242,8 +244,8 @@ module "kube-hetzner" {
     # See the https://github.com/kube-hetzner/terraform-hcloud-kube-hetzner#examples for an example use case.
     {
       name        = "egress",
-      server_type = "cx22",
-      location    = "fsn1",
+      server_type = var.server_small # "cx22",
+      location    = var.location # "fns1",
       labels = [
         "node.kubernetes.io/role=egress"
       ],
@@ -254,15 +256,17 @@ module "kube-hetzner" {
       # Optionally associate a reverse DNS entry with the floating IP(s).
       # This is useful in combination with the Egress Gateway feature for hosting certain services in the cluster, such as email servers.
       # floating_ip_rns = "my.domain.com"
-      count = 1
+      count = 0
     },
     # Arm based nodes
     {
       name        = "agent-arm-small",
-      server_type = "cax11",
-      location    = "fsn1",
+      server_type = local.arm_small,
+      location    = var.location # "fns1",
       labels      = [],
-      taints      = [],
+      taints      = [
+        "node.kubernetes.io/arch=arm64:NoSchedule"
+      ],
       count       = 1
     },
     # For fine-grained control over the nodes in a node pool, replace the count variable with a nodes map.
@@ -270,32 +274,34 @@ module "kube-hetzner" {
     # Each key in the nodes map refers to a single node and must be an integer string ("1", "123", ...).
     {
       name        = "agent-arm-medium",
-      server_type = "cax21",
-      location    = "fsn1",
+      server_type = local.arm_medium,
+      location    = var.location # "fns1",
       labels      = [],
       taints      = [],
-      nodes = {
-        "1" : {
-          location                  = "nbg1"
-          labels = [
-            "testing-labels=a1",
-          ]
-        },
-        "20" : {
-          labels = [
-            "testing-labels=b1",
-          ]
-        }
-      }
+      count = 0
+      # nodes = {
+      #   "1" : {
+      #     location                  = var.location
+      #     labels = [
+      #       "testing-labels=a1",
+      #     ]
+      #   }
+      # }
     },
   ]
-  # Add custom control plane configuration options here.
+  # Add additional configuration options for control planes here.
   # E.g to enable monitoring for etcd, proxy etc:
   # control_planes_custom_config = {
   #  etcd-expose-metrics = true,
   #  kube-controller-manager-arg = "bind-address=0.0.0.0",
   #  kube-proxy-arg ="metrics-bind-address=0.0.0.0",
   #  kube-scheduler-arg = "bind-address=0.0.0.0",
+  # }
+
+  # Add additional configuration options for agent nodes and autoscaler nodes here.
+  # E.g to enable monitoring for proxy:
+  # agent_nodes_custom_config = {
+  #  kube-proxy-arg ="metrics-bind-address=0.0.0.0",
   # }
 
   # You can enable encrypted wireguard for the CNI by setting this to "true". Default is "false".
@@ -307,7 +313,7 @@ module "kube-hetzner" {
 
   # * LB location and type, the latter will depend on how much load you want it to handle, see https://www.hetzner.com/cloud/load-balancer
   load_balancer_type     = "lb11"
-  load_balancer_location = "fsn1"
+  load_balancer_location = var.location # "fns1"
 
   # Disable IPv6 for the load balancer, the default is false.
   # load_balancer_disable_ipv6 = true
@@ -344,7 +350,7 @@ module "kube-hetzner" {
   #  {
   #    name        = "autoscaled-small"
   #    server_type = "cx32"
-  #    location    = "fsn1"
+  #    location    = var.location # "fns1"
   #    min_nodes   = 0
   #    max_nodes   = 5
   #    labels      = {
@@ -360,6 +366,10 @@ module "kube-hetzner" {
   #    # kubelet_args = ["kube-reserved=cpu=250m,memory=1500Mi,ephemeral-storage=1Gi", "system-reserved=cpu=250m,memory=300Mi"]
   #  }
   # ]
+  #
+  # To disable public ips on your autoscaled nodes, uncomment the following lines:
+  # autoscaler_disable_ipv4 = true
+  # autoscaler_disable_ipv6 = true
 
   # ⚠️ Deprecated, will be removed after a new Cluster Autoscaler version has been released which support the new way of setting labels and taints. See above.
   # Add extra labels on nodes started by the Cluster Autoscaler
@@ -488,11 +498,8 @@ module "kube-hetzner" {
   # See https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases for the available versions.
   # hetzner_ccm_version = ""
 
-  # By default, new installations use Helm to install Hetzner CCM. You can use the legacy deployment method (using `kubectl apply`) by setting `hetzner_ccm_use_helm = false`.
-  hetzner_ccm_use_helm = true
-
   # See https://github.com/hetznercloud/csi-driver/releases for the available versions.
-  # hetzner_csi_version = ""
+  hetzner_csi_version = "2.15.0"
 
   # If you want to specify the Kured version, set it below - otherwise it'll use the latest version available.
   # See https://github.com/kubereboot/kured/releases for the available versions.
@@ -533,7 +540,7 @@ module "kube-hetzner" {
 
   # Enable or disable Horizontal Pod Autoscaler for traefik.
   # The default is true.
-  # traefik_autoscaling = false
+  traefik_autoscaling = false
 
   # Enable or disable pod disruption budget for traefik. Values are maxUnavailable: 33% and minAvailable: 1.
   # The default is true.
@@ -575,7 +582,7 @@ module "kube-hetzner" {
   # ]
 
   # If you want to disable the metric server set this to "false". Default is "true".
-  # enable_metrics_server = false
+  enable_metrics_server = true
 
   # If you want to enable the k3s built-in local-storage controller set this to "true". Default is "false".
   # Warning: When enabled together with the Hetzner CSI, there will be two default storage classes: "local-path" and "hcloud-volumes"!
@@ -646,7 +653,7 @@ module "kube-hetzner" {
   # sys_upgrade_controller_version = "v0.14.2"
 
   # The cluster name, by default "k3s"
-  # cluster_name = ""
+  cluster_name = "k3s"
 
   # Whether to use the cluster name in the node name, in the form of {cluster_name}-{nodepool_name}, the default is "true".
   # use_cluster_name_in_node_name = false
@@ -722,7 +729,8 @@ module "kube-hetzner" {
   #         prefix: "oidc:"
   #   EOT
 
-
+  # Set to true if util-linux breaks on the OS (temporary regression fixed in util-linux v2.41.1).
+  # k3s_prefer_bundled_bin = true
 
   # Additional flags to pass to the k3s server command (the control plane).
   # k3s_exec_server_args = "--kube-apiserver-arg enable-admission-plugins=PodTolerationRestriction,PodNodeSelector"
@@ -739,7 +747,7 @@ module "kube-hetzner" {
   # k3s_autoscaler_kubelet_args = []
 
   # If you want to allow all outbound traffic you can set this to "false". Default is "true".
-  # restrict_outbound_traffic = false
+  restrict_outbound_traffic = true
 
   # Allow access to the Kube API from the specified networks. The default is ["0.0.0.0/0", "::/0"].
   # Allowed values: null (disable Kube API rule entirely) or a list of allowed networks with CIDR notation.
@@ -752,7 +760,7 @@ module "kube-hetzner" {
   # Allow SSH access from the specified networks. Default: ["0.0.0.0/0", "::/0"]
   # Allowed values: null (disable SSH rule entirely) or a list of allowed networks with CIDR notation.
   # Ideally you would set your IP there. And if it changes after cluster deploy, you can always update this variable and apply again.
-  # firewall_ssh_source = ["1.2.3.4/32"]
+  firewall_ssh_source = [var.my_ip]
 
   # By default, SELinux is enabled in enforcing mode on all nodes. For container-specific SELinux issues,
   # consider using the pre-installed 'udica' tool to create custom, targeted SELinux policies instead of
@@ -761,24 +769,22 @@ module "kube-hetzner" {
 
   # Adding extra firewall rules, like opening a port
   # More info on the format here https://registry.terraform.io/providers/hetznercloud/hcloud/latest/docs/resources/firewall
-  # extra_firewall_rules = [
-  #   {
-  #     description = "For Postgres"
-  #     direction       = "in"
-  #     protocol        = "tcp"
-  #     port            = "5432"
-  #     source_ips      = ["0.0.0.0/0", "::/0"]
-  #     destination_ips = [] # Won't be used for this rule
-  #   },
-  #   {
-  #     description = "To Allow ArgoCD access to resources via SSH"
-  #     direction       = "out"
-  #     protocol        = "tcp"
-  #     port            = "22"
-  #     source_ips      = [] # Won't be used for this rule
-  #     destination_ips = ["0.0.0.0/0", "::/0"]
-  #   }
-  # ]
+  extra_firewall_rules = [
+    {
+      description = "Restrict HTTP for development"
+      direction   = "in"
+      port        = "80"
+      protocol    = "tcp"
+      source_ips  = [var.my_ip] # Replace with your IP or CIDR range
+    },
+    {
+      description = "Restrict HTTPS for development"
+      direction   = "in"
+      port        = "443"
+      protocol    = "tcp"
+      source_ips  = [var.my_ip]
+    }
+  ]
 
   # If you want to configure a different CNI for k3s, use this flag
   # possible values: flannel (Default), calico, and cilium
@@ -844,7 +850,7 @@ module "kube-hetzner" {
 
   # When this is enabled, rather than the first node, all external traffic will be routed via a control-plane loadbalancer, allowing for high availability.
   # The default is false.
-  # use_control_plane_lb = true
+  # luse_control_plane_lb = true
 
   # When the above use_control_plane_lb is enabled, you can change the lb type for it, the default is "lb11".
   # control_plane_lb_type = "lb21"
@@ -936,7 +942,7 @@ module "kube-hetzner" {
   # See https://github.com/kube-hetzner/terraform-hcloud-kube-hetzner/issues/349
   # When "false". The kubeconfig file can instead be created by executing: "terraform output --raw kubeconfig > cluster_kubeconfig.yaml"
   # Always be careful to not commit this file!
-  # create_kubeconfig = false
+  create_kubeconfig = false
 
   # Don't create the kustomize backup. This can be helpful for automation.
   # create_kustomization = false
@@ -1055,7 +1061,7 @@ service:
     "load-balancer.hetzner.cloud/name": "k3s"
     "load-balancer.hetzner.cloud/use-private-ip": "true"
     "load-balancer.hetzner.cloud/disable-private-ingress": "true"
-    "load-balancer.hetzner.cloud/location": "nbg1"
+    "load-balancer.hetzner.cloud/location": var.location
     "load-balancer.hetzner.cloud/type": "lb11"
     "load-balancer.hetzner.cloud/uses-proxyprotocol": "true"
 
@@ -1106,7 +1112,7 @@ controller:
       "load-balancer.hetzner.cloud/name": "k3s"
       "load-balancer.hetzner.cloud/use-private-ip": "true"
       "load-balancer.hetzner.cloud/disable-private-ingress": "true"
-      "load-balancer.hetzner.cloud/location": "nbg1"
+      "load-balancer.hetzner.cloud/location": var.location
       "load-balancer.hetzner.cloud/type": "lb11"
       "load-balancer.hetzner.cloud/uses-proxyprotocol": "true"
   EOT */
@@ -1164,26 +1170,3 @@ bootstrapPassword: "supermario"
 
 }
 
-provider "hcloud" {
-  token = var.hcloud_token != "" ? var.hcloud_token : local.hcloud_token
-}
-
-terraform {
-  required_version = ">= 1.5.0"
-  required_providers {
-    hcloud = {
-      source  = "hetznercloud/hcloud"
-      version = ">= 1.49.1"
-    }
-  }
-}
-
-output "kubeconfig" {
-  value     = module.kube-hetzner.kubeconfig
-  sensitive = true
-}
-
-variable "hcloud_token" {
-  sensitive = true
-  default   = ""
-}

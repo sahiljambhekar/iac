@@ -15,8 +15,18 @@ variable "my_ssh_id" {
   description = "SSH Key ID for Public Key registered in HCloud"
 }
 
-variable "server_type" {
+variable "server_small" {
   description = "Hetzner server type for control plane and agent nodes"
   type        = string
   default     = "cx22"
+}
+
+variable "server_large" {
+  type = string
+  default = "cx32"
+}
+variable "location" {
+  type = string
+  default = "FSN1"
+  
 }

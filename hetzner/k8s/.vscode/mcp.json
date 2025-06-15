@@ -1,0 +1,49 @@
+{
+    "inputs": [
+        {
+            "id": "HCLOUD_TOKEN",
+            "type": "promptString",
+            "description": "Hetzner Cloud API Token",
+            "default": "",
+            "options": {
+                "password": true
+            }
+        }
+    ],
+    "servers": {
+        "terraform-mcp-server": {
+            "type": "stdio",
+            "command": "docker",
+            "args": [
+                "run",
+                "-i",
+                "--rm",
+                "hashicorp/terraform-mcp-server"
+            ]
+        },
+        "MCP_DOCKER": {
+            "type": "stdio",
+            "command": "docker",
+            "args": [
+                "run",
+                "-i",
+                "--rm",
+                "alpine/socat",
+                "STDIO",
+                "TCP:host.docker.internal:8811"
+            ]
+        },
+        "hetzner": {
+            "type": "stdio",
+            "command": "uv",
+            "args": [
+                "tool",
+                "run",
+                "mcp-hetzner"
+            ],
+            "env": {
+                "HCLOUD_TOKEN": "${input:HCLOUD_TOKEN}"
+            }
+        }
+    }
+}
