@@ -1,18 +1,3 @@
-locals {
-  # You have the choice of setting your Hetzner API token here or define the TF_VAR_hcloud_token env
-  # within your shell, such as: export TF_VAR_hcloud_token=xxxxxxxxxxx
-  # If you choose to define it in the shell, this can be left as is.
-
-  # Your Hetzner token can be found in your Project > Security > API Token (Read & Write is required).
-  hcloud_token = var.hcloud_token
-
-  arm_small = "cax11" # The smallest ARM server type, which is the same as cx22, but with ARM architecture.
-  arm_medium = "cax21" # The next ARM server type, which is the same as cx32, but with ARM architecture.
-  amd_small = "cx22" # Hetzner server type for control plane and agent nodes
-  amd_medium = "cx32" # Hetzner server type for control plane and agent nodes
-  amd_large = "cx41" # Hetzner server type for control plane and agent nodes
-}
-
 module "kube-hetzner" {
   providers = {
     hcloud = hcloud
@@ -62,7 +47,7 @@ module "kube-hetzner" {
 
   # These can be customized, or left with the default values
   # * For Hetzner locations see https://docs.hetzner.com/general/others/data-centerhcls-and-connection/
-  network_region = "eu-central" # change to `us-east` if location is ash
+  network_region = var.region # change to `us-east` if location is ash
 
   # If you want to create the private network before calling this module,
   # you can do so and pass its id here. For example if you want to use a proxy
@@ -127,9 +112,9 @@ module "kube-hetzner" {
 
   control_plane_nodepools = [
     {
-      name        = "control-plane-fsn1",
+      name        = "control-plane-${local.control_plane_loc}-0",
       server_type = local.amd_medium, # "cx22",
-      location    = var.location, # "fns1",
+      location    = local.control_plane_loc,
       labels      = [],
       taints      = [],
       count       = 1
@@ -150,9 +135,9 @@ module "kube-hetzner" {
       # disable_ipv6 = true
     },
     {
-      name        = "control-plane-nbg1",
+      name        = "control-plane-${local.control_plane_loc}-1",
       server_type = local.amd_small # "cx22",
-      location    = "nbg1"  #var.location,
+      location    = local.control_plane_loc,  #var.location,
       labels      = [],
       taints      = [],
       count       = 0
@@ -168,26 +153,6 @@ module "kube-hetzner" {
       # the instructions regarding this type of setup in README.md: "Use only private IPs in your cluster".
       # disable_ipv4 = true
       # disable_ipv6 = true
-    },
-    {
-      name        = "control-plane-hel1",
-      server_type = local.amd_small # "cx22",
-      location    = "hel1",
-      labels      = [],
-      taints      = [],
-      count       = 0
-
-      # Fine-grained control over placement groups (nodes in the same group are spread over different physical servers, 10 nodes per placement group max):
-      # placement_group = "default"
-
-      # Enable automatic backups via Hetzner (default: false)
-      # backups = true
-
-      # To disable public ips (default: false)
-      # WARNING: If both values are set to "true", your server will only be accessible via a private network. Make sure you have followed
-      # the instructions regarding this type of setup in README.md: "Use only private IPs in your cluster".
-        disable_ipv4 = true
-      # disable_ipv6 = true
     }
   ]
 
@@ -195,7 +160,7 @@ module "kube-hetzner" {
     {
       name        = "agent-small",
       server_type = local.amd_small # "cx22",
-      location    = var.location # "fns1",
+      location    = var.location # Ideally same as control_plane_loc
       labels      = [
         "node.kubernetes.io/role=worker"
       ],
@@ -240,7 +205,7 @@ module "kube-hetzner" {
       # It will create one volume per node in the nodepool, and configure Longhorn to use them.
       # Something worth noting is that Volume storage is slower than node storage, which is achieved by not mentioning longhorn_volume_size or setting it to 0.
       # So for something like DBs, you definitely want node storage, for other things like backups, volume storage is fine, and cheaper.
-      # longhorn_volume_size = 20
+      longhorn_volume_size = 5 # Size in GB, defaults to 0, which means no volumes are created.
 
       # Enable automatic backups via Hetzner (default: false)
       # backups = true
@@ -322,7 +287,7 @@ module "kube-hetzner" {
   # load_balancer_disable_public_network = true
 
   # Specifies the algorithm type of the load balancer. (default: round_robin).
-  # load_balancer_algorithm_type = "least_connections"
+  load_balancer_algorithm_type = "least_connections"
 
   # Specifies the interval at which a health check is performed. Minimum is 3s (default: 15s).
   # load_balancer_health_check_interval = "5s"
@@ -465,20 +430,20 @@ module "kube-hetzner" {
   # To use local storage on the nodes, you can enable Longhorn, default is "false".
   # See a full recap on how to configure agent nodepools for longhorn here https://github.com/kube-hetzner/terraform-hcloud-kube-hetzner/discussions/373#discussioncomment-3983159
   # Also see Longhorn best practices here https://gist.github.com/ifeulner/d311b2868f6c00e649f33a72166c2e5b
-  # enable_longhorn = true
+  enable_longhorn = false
 
   # By default, longhorn is pulled from https://charts.longhorn.io.
   # If you need a version of longhorn which assures compatibility with rancher you can set this variable to https://charts.rancher.io.
   # longhorn_repository = "https://charts.rancher.io"
 
   # The namespace for longhorn deployment, default is "longhorn-system".
-  # longhorn_namespace = "longhorn-system"
+  longhorn_namespace = "longhorn-system"
 
   # The file system type for Longhorn, if enabled (ext4 is the default, otherwise you can choose xfs).
   # longhorn_fstype = "xfs"
 
   # how many replica volumes should longhorn create (default is 3).
-  # longhorn_replica_count = 1
+  longhorn_replica_count = 2
 
   # When you enable Longhorn, you can go with the default settings and just modify the above two variables OR you can add a longhorn_values variable
   # with all needed helm values, see towards the end of the file in the advanced section.
@@ -820,11 +785,11 @@ module "kube-hetzner" {
 
   # If you want to disable the k3s kube-proxy, use this flag. The default is "false".
   # Ensure that your CNI is capable of handling all the functionalities typically covered by kube-proxy.
-  # disable_kube_proxy = true
+  disable_kube_proxy = true
 
   # If you want to disable the k3s default network policy controller, use this flag!
   # Both Calico and Cilium cni_plugin values override this value to true automatically, the default is "false".
-  # disable_network_policy = true
+  disable_network_policy = true
 
   # If you want to disable the automatic use of placement group "spread". See https://docs.hetzner.com/cloud/placement-groups/overview/
   # We advise to not touch that setting, unless you have a specific purpose.
@@ -835,7 +800,7 @@ module "kube-hetzner" {
   # block_icmp_ping_in = true
 
   # You can enable cert-manager (installed by Helm behind the scenes) with the following flag, the default is "true".
-  # enable_cert_manager = false
+  enable_cert_manager = true
 
   # IP Addresses to use for the DNS Servers, the defaults are the ones provided by Hetzner https://docs.hetzner.com/dns-console/dns/general/recursive-name-servers/.
   # The number of different DNS servers is limited to 3 by Kubernetes itself.
@@ -953,8 +918,8 @@ module "kube-hetzner" {
   # MicroOS snapshot IDs to be used. Per default empty, the most recent image created using createkh will be used.
   # We recommend the default, but if you want to use specific IDs you can.
   # You can fetch the ids with the hcloud cli by running the "hcloud image list --selector 'microos-snapshot=yes'" command.
-  microos_x86_snapshot_id = "244590612"
-  microos_arm_snapshot_id = "244590567"
+  # microos_x86_snapshot_id = "244590612"
+  # microos_arm_snapshot_id = "244590567"
 
   ### ADVANCED - Custom helm values for packages above (search _values if you want to located where those are mentioned upper in this file)
   # ⚠️ Inside the _values variable below are examples, up to you to find out the best helm values possible, we do not provide support for customized helm values.
