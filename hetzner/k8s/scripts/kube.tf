@@ -605,13 +605,13 @@ module "kube-hetzner" {
   # For production use, always use an HA setup with at least 3 control-plane nodes and 2 agents, and keep this on for maximum security.
 
   # The default is "true" (in HA setup i.e. at least 3 control plane nodes & 2 agents, just keep it enabled since it works flawlessly).
-  # automatically_upgrade_k3s = false
+  automatically_upgrade_k3s = false
 
   # By default nodes are drained before k3s upgrade, which will delete and transfer all pods to other nodes.
   # Set this to false to cordon nodes instead, which just prevents scheduling new pods on the node during upgrade
   # and keeps all pods running. This may be useful if you have pods which are known to be slow to start e.g.
   # because they have to mount volumes with many files which require to get the right security context applied.
-  system_upgrade_use_drain = true
+  system_upgrade_use_drain = false
 
   # During k3s via system-upgrade-manager pods are evicted by default.
   # On small clusters this can lead to hanging upgrades and indefinitely unschedulable nodes,
@@ -810,7 +810,7 @@ module "kube-hetzner" {
   # cilium_egress_gateway_enabled = true
 
   # Enables Hubble Observability to collect and visualize network traffic. Default: false
-  # cilium_hubble_enabled = true
+  cilium_hubble_enabled = true
 
   # Configures the list of Hubble metrics to collect.
   # cilium_hubble_metrics_enabled = [
@@ -947,18 +947,18 @@ module "kube-hetzner" {
   create_kubeconfig = false
 
   # Don't create the kustomize backup. This can be helpful for automation.
-  # create_kustomization = false
+  create_kustomization = true
 
   # Export the values.yaml files used for the deployment of traefik, longhorn, cert-manager, etc.
   # This can be helpful to use them for later deployments like with ArgoCD.
   # The default is false.
-  # export_values = true
+  export_values = true
 
   # MicroOS snapshot IDs to be used. Per default empty, the most recent image created using createkh will be used.
   # We recommend the default, but if you want to use specific IDs you can.
   # You can fetch the ids with the hcloud cli by running the "hcloud image list --selector 'microos-snapshot=yes'" command.
-  # microos_x86_snapshot_id = "1234567"
-  # microos_arm_snapshot_id = "1234567"
+  microos_x86_snapshot_id = "244590612"
+  microos_arm_snapshot_id = "244590567"
 
   ### ADVANCED - Custom helm values for packages above (search _values if you want to located where those are mentioned upper in this file)
   # ⚠️ Inside the _values variable below are examples, up to you to find out the best helm values possible, we do not provide support for customized helm values.
