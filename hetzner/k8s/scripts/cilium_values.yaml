@@ -7,6 +7,9 @@ k8s:
 # Replace kube-proxy with Cilium
 kubeProxyReplacement: true
 
+# Enable health check server (healthz) for the kube-proxy replacement
+kubeProxyReplacementHealthzBindAddr: "0.0.0.0:10256"
+
 # Access to Kube API Server (mandatory if kube-proxy is disabled)
 k8sServiceHost: "127.0.0.1"
 k8sServicePort: "6444"
