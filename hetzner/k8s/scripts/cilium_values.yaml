@@ -37,5 +37,6 @@ hubble:
     enabled: true
   metrics:
     enabled:
+      - "policy:sourceContext=app|workload-name|pod|reserved-identity;destinationContext=app|workload-name|pod|reserved-identity;labelsContext=source_namespace,destination_namespace"
 
 MTU: 1450

@@ -12,7 +12,7 @@ module "kube-hetzner" {
   source = "kube-hetzner/kube-hetzner/hcloud"
   #    When using the terraform registry as source, you can optionally specify a version number.
   #    See https://registry.terraform.io/modules/kube-hetzner/kube-hetzner/hcloud for the available versions
-   version = "2.17.0"
+  version = "2.17.0"
   # 2. For local dev, path to the git repo
   # source = "../../kube-hetzner/"
   # 3. If you want to use the latest master branch (see https://developer.hashicorp.com/terraform/language/modules/sources#github), use
@@ -131,13 +131,13 @@ module "kube-hetzner" {
       # To disable public ips (default: false)
       # WARNING: If both values are set to "true", your server will only be accessible via a private network. Make sure you have followed
       # the instructions regarding this type of setup in README.md: "Use only private IPs in your cluster".
-        disable_ipv4 = true
+      disable_ipv4 = true
       # disable_ipv6 = true
     },
     {
       name        = "control-plane-${local.control_plane_loc}-1",
-      server_type = local.amd_small # "cx22",
-      location    = local.control_plane_loc,  #var.location,
+      server_type = local.amd_small          # "cx22",
+      location    = local.control_plane_loc, #var.location,
       labels      = [],
       taints      = [],
       count       = 0
@@ -160,14 +160,14 @@ module "kube-hetzner" {
     {
       name        = "agent-small",
       server_type = local.amd_small # "cx22",
-      location    = var.location # Ideally same as control_plane_loc
-      labels      = [
+      location    = var.location    # Ideally same as control_plane_loc
+      labels = [
         "node.kubernetes.io/role=worker"
       ],
-      taints      = [],
-      count       = 2
-      swap_size   = "2G" # remember to add the suffix, examples: 512M, 1G
-      zram_size   = "1G" # remember to add the suffix, examples: 512M, 1G
+      taints       = [],
+      count        = 2
+      swap_size    = "2G" # remember to add the suffix, examples: 512M, 1G
+      zram_size    = "1G" # remember to add the suffix, examples: 512M, 1G
       kubelet_args = ["kube-reserved=cpu=150m,memory=300Mi,ephemeral-storage=1Gi", "system-reserved=cpu=250m,memory=300Mi"]
 
       # Fine-grained control over placement groups (nodes in the same group are spread over different physical servers, 10 nodes per placement group max):
@@ -175,6 +175,7 @@ module "kube-hetzner" {
 
       # Enable automatic backups via Hetzner (default: false)
       # backups = true
+      longhorn_volume_size = 5 # Size in GB, defaults to 0, which means no volumes are created.
     },
     {
       name        = "agent-large",
@@ -193,19 +194,19 @@ module "kube-hetzner" {
     {
       name        = "storage",
       server_type = local.amd_small #"cx32",
-      location    = var.location # "fns1",
+      location    = var.location    # "fns1",
       # Fully optional, just a demo.
-      labels      = [
+      labels = [
         "node.kubernetes.io/server-usage=storage"
       ],
-      taints      = [],
-      count       = 0
+      taints = [],
+      count  = 0
 
       # In the case of using Longhorn, you can use Hetzner volumes instead of using the node's own storage by specifying a value from 10 to 10240 (in GB)
       # It will create one volume per node in the nodepool, and configure Longhorn to use them.
       # Something worth noting is that Volume storage is slower than node storage, which is achieved by not mentioning longhorn_volume_size or setting it to 0.
       # So for something like DBs, you definitely want node storage, for other things like backups, volume storage is fine, and cheaper.
-      longhorn_volume_size = 5 # Size in GB, defaults to 0, which means no volumes are created.
+      #longhorn_volume_size = 5 # Size in GB, defaults to 0, which means no volumes are created.
 
       # Enable automatic backups via Hetzner (default: false)
       # backups = true
@@ -216,7 +217,7 @@ module "kube-hetzner" {
     {
       name        = "egress",
       server_type = local.amd_small # "cx22",
-      location    = var.location # "fns1",
+      location    = var.location    # "fns1",
       labels = [
         "node.kubernetes.io/role=egress"
       ],
@@ -235,10 +236,10 @@ module "kube-hetzner" {
       server_type = local.arm_small,
       location    = var.location # "fns1",
       labels      = [],
-      taints      = [
+      taints = [
         "node.kubernetes.io/arch=arm64:NoSchedule"
       ],
-      count       = 0
+      count = 0
     },
     # For fine-grained control over the nodes in a node pool, replace the count variable with a nodes map.
     # In this case, the node-pool variables are defaults which can be overridden on a per-node basis.
@@ -248,7 +249,7 @@ module "kube-hetzner" {
       server_type = local.arm_medium,
       location    = var.location # "fns1",
       labels      = [],
-      taints      = [
+      taints = [
         "node.kubernetes.io/arch=arm64:NoSchedule"
       ],
       count = 0
@@ -333,7 +334,7 @@ module "kube-hetzner" {
   # ]
   #
 
-  
+
   # ⚠️ Deprecated, will be removed after a new Cluster Autoscaler version has been released which support the new way of setting labels and taints. See above.
   # Add extra labels on nodes started by the Cluster Autoscaler
   # This argument is not used if autoscaler_nodepools is not set, because the Cluster Autoscaler is installed only if autoscaler_nodepools is set
@@ -430,7 +431,7 @@ module "kube-hetzner" {
   # To use local storage on the nodes, you can enable Longhorn, default is "false".
   # See a full recap on how to configure agent nodepools for longhorn here https://github.com/kube-hetzner/terraform-hcloud-kube-hetzner/discussions/373#discussioncomment-3983159
   # Also see Longhorn best practices here https://gist.github.com/ifeulner/d311b2868f6c00e649f33a72166c2e5b
-  enable_longhorn = false
+  enable_longhorn = true
 
   # By default, longhorn is pulled from https://charts.longhorn.io.
   # If you need a version of longhorn which assures compatibility with rancher you can set this variable to https://charts.rancher.io.
@@ -774,9 +775,9 @@ module "kube-hetzner" {
   cilium_hubble_enabled = true
 
   # Configures the list of Hubble metrics to collect.
-  # cilium_hubble_metrics_enabled = [
-  #   "policy:sourceContext=app|workload-name|pod|reserved-identity;destinationContext=app|workload-name|pod|dns|reserved-identity;labelsContext=source_namespace,destination_namespace"
-  # ]
+  cilium_hubble_metrics_enabled = [
+    "policy:sourceContext=app|workload-name|pod|reserved-identity;destinationContext=app|workload-name|pod|reserved-identity;labelsContext=source_namespace,destination_namespace"
+  ]
 
   # You can choose the version of Calico that you want. By default, the latest is used.
   # More info on available versions can be found at https://github.com/projectcalico/calico/releases
@@ -918,8 +919,8 @@ module "kube-hetzner" {
   # MicroOS snapshot IDs to be used. Per default empty, the most recent image created using createkh will be used.
   # We recommend the default, but if you want to use specific IDs you can.
   # You can fetch the ids with the hcloud cli by running the "hcloud image list --selector 'microos-snapshot=yes'" command.
-  # microos_x86_snapshot_id = "244590612"
-  # microos_arm_snapshot_id = "244590567"
+  microos_x86_snapshot_id = "244590612"
+  microos_arm_snapshot_id = "244590567"
 
   ### ADVANCED - Custom helm values for packages above (search _values if you want to located where those are mentioned upper in this file)
   # ⚠️ Inside the _values variable below are examples, up to you to find out the best helm values possible, we do not provide support for customized helm values.

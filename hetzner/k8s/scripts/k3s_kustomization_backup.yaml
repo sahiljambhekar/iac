@@ -36,4 +36,5 @@
 - "hcloud-csi.yaml"
 - "traefik_ingress.yaml"
 - "cilium.yaml"
+- "longhorn.yaml"
 - "cert_manager.yaml"

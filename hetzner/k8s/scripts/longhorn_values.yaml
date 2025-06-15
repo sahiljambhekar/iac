@@ -1,0 +1,6 @@
+defaultSettings:
+  defaultDataPath: /var/longhorn
+persistence:
+  defaultFsType: ext4
+  defaultClassReplicaCount: 2
+  defaultClass: false
