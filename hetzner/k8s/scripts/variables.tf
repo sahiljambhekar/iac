@@ -10,7 +10,6 @@ variable "my_ips" {
   sensitive = false
 }
 
-
 variable "location" {
   type = string
   default = "FSN1"

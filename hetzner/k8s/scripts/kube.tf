@@ -146,7 +146,7 @@ module "kube-hetzner" {
       # To disable public ips (default: false)
       # WARNING: If both values are set to "true", your server will only be accessible via a private network. Make sure you have followed
       # the instructions regarding this type of setup in README.md: "Use only private IPs in your cluster".
-      # disable_ipv4 = true
+        disable_ipv4 = true
       # disable_ipv6 = true
     },
     {
@@ -186,7 +186,7 @@ module "kube-hetzner" {
       # To disable public ips (default: false)
       # WARNING: If both values are set to "true", your server will only be accessible via a private network. Make sure you have followed
       # the instructions regarding this type of setup in README.md: "Use only private IPs in your cluster".
-      # disable_ipv4 = true
+        disable_ipv4 = true
       # disable_ipv6 = true
     }
   ]
@@ -196,11 +196,13 @@ module "kube-hetzner" {
       name        = "agent-small",
       server_type = local.amd_small # "cx22",
       location    = var.location # "fns1",
-      labels      = [],
+      labels      = [
+        "node.kubernetes.io/role=worker"
+      ],
       taints      = [],
-      count       = 1
+      count       = 2
       swap_size   = "2G" # remember to add the suffix, examples: 512M, 1G
-      zram_size   = "2G" # remember to add the suffix, examples: 512M, 1G
+      zram_size   = "1G" # remember to add the suffix, examples: 512M, 1G
       kubelet_args = ["kube-reserved=cpu=150m,memory=300Mi,ephemeral-storage=1Gi", "system-reserved=cpu=250m,memory=300Mi"]
 
       # Fine-grained control over placement groups (nodes in the same group are spread over different physical servers, 10 nodes per placement group max):
@@ -271,7 +273,7 @@ module "kube-hetzner" {
       taints      = [
         "node.kubernetes.io/arch=arm64:NoSchedule"
       ],
-      count       = 1
+      count       = 0
     },
     # For fine-grained control over the nodes in a node pool, replace the count variable with a nodes map.
     # In this case, the node-pool variables are defaults which can be overridden on a per-node basis.
@@ -281,16 +283,10 @@ module "kube-hetzner" {
       server_type = local.arm_medium,
       location    = var.location # "fns1",
       labels      = [],
-      taints      = [],
+      taints      = [
+        "node.kubernetes.io/arch=arm64:NoSchedule"
+      ],
       count = 0
-      # nodes = {
-      #   "1" : {
-      #     location                  = var.location
-      #     labels = [
-      #       "testing-labels=a1",
-      #     ]
-      #   }
-      # }
     },
   ]
   # Add additional configuration options for control planes here.
@@ -618,11 +614,11 @@ module "kube-hetzner" {
   # in that case, set this to false to immediately delete pods before upgrading.
   # NOTE: Turning this flag off might lead to downtimes of services (which may be acceptable for your use case)
   # NOTE: This flag takes effect only when system_upgrade_use_drain is set to true.
-  # system_upgrade_enable_eviction = false
+  system_upgrade_enable_eviction = true
 
   # The default is "true" (in HA setup it works wonderfully well, with automatic roll-back to the previous snapshot in case of an issue).
   # IMPORTANT! For non-HA clusters i.e. when the number of control-plane nodes is < 3, you have to turn it off.
-  # automatically_upgrade_os = false
+  automatically_upgrade_os = false
 
   # If you need more control over kured and the reboot behaviour, you can pass additional options to kured.
   # For example limiting reboots to certain timeframes. For all options see: https://kured.dev/docs/configuration/
@@ -757,7 +753,7 @@ module "kube-hetzner" {
   # you would have to connect to any control plane node via SSH, as you can run kubectl from within these.
   # Please be advised that this setting has no effect on the load balancer when the use_control_plane_lb variable is set to true. This is
   # because firewall rules cannot be applied to load balancers yet.
-  # firewall_kube_api_source = null
+  firewall_kube_api_source = var.my_ips
 
   # Allow SSH access from the specified networks. Default: ["0.0.0.0/0", "::/0"]
   # Allowed values: null (disable SSH rule entirely) or a list of allowed networks with CIDR notation.
