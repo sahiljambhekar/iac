@@ -113,7 +113,7 @@ module "kube-hetzner" {
   control_plane_nodepools = [
     {
       name        = "control-plane-${local.control_plane_loc}-0",
-      server_type = local.amd_medium, # "cx22",
+      server_type = local.amd_large,
       location    = local.control_plane_loc,
       labels      = [],
       taints      = [],
@@ -931,7 +931,7 @@ module "kube-hetzner" {
   # Or you can create a thepackage-values.yaml file with the content and use it here with the following syntax:
   # thepackage_values = file("thepackage-values.yaml")
 
-  # Cilium, all Cilium helm values can be found at https://github.com/cilium/cilium/blob/master/install/kubernetes/cilium/values.yaml
+  # Cilium, all Cilium helm values can be found at https://github.com/cilik gum/cilium/blob/master/install/kubernetes/cilium/values.yaml
   # Be careful when maintaining your own cilium_values, as the choice of available settings depends on the Cilium version used. See also the cilium_version setting to fix a specific version.
   # The following is an example, please note that the current indentation inside the EOT is important.
   /*   cilium_values = <<EOT
