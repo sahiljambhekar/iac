@@ -39,3 +39,6 @@ override.tf.json
 .terraformrc
 terraform.rc
 hetzner/.gitignore
+
+# Terragrunt
+.terragrunt-cache
