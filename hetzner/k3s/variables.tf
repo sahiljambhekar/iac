@@ -11,6 +11,7 @@ variable "my_ips" {
 }
 
 variable "location" {
+  # They recently came into Ashburn. 
   type    = string
   default = "ash"
 
